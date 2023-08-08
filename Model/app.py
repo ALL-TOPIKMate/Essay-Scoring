@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import konlpy
-from konlpy.tag import Okt
+from konlpy.tag import Okt, Komoran
 import scipy as sp
 from flask import Flask, request, jsonify
 import requests
@@ -8,7 +8,7 @@ import json
 import re
 app = Flask(__name__)
 t = Okt()
-
+k = Komoran()
 #문장 유사도
 vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
 
@@ -162,10 +162,10 @@ def Express():
   data = request.json
   sentence = data.get('contents', [])
   #문장 끝 표현 체크, 감점
-  check = t.pos(sentence[0][:])
+  check = k.pos(sentence[0][:])
   cnt = 0
   for i in range(len(check)):
-    if check[i][0].endswith('습니다') or check[i][0].endswith('요'):
+    if check[i][0].endswith('ㅂ니다') or check[i][0].endswith('습니다') or check[i][0].endswith('아요') or check[i][0].endswith('어요'): 
       cnt+=1
 
   #대조 표현 사용, 가점
