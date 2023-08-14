@@ -5,9 +5,11 @@ import scipy as sp
 from flask import Flask, request, jsonify
 import requests
 import json
+import re
 app = Flask(__name__)
 t = Okt()
 
+#문장 유사도
 vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
 
 def sentence_token(contents):
@@ -23,7 +25,7 @@ def sentence_token(contents):
   #tf-idf 벡터화
   X = vectorizer.fit_transform(contents_for_vectorize)
   num_samples, num_features = X.shape
-  print(num_samples, num_features)
+  #print(num_samples, num_features)
   return X
 def new_token(new_post):
   new_post_tokens = [t.morphs(row) for row in new_post]
@@ -34,7 +36,7 @@ def new_token(new_post):
       sentence = sentence + ' ' + word
     new_post_for_vectorize.append(sentence)
   new_post_vec = vectorizer.transform(new_post_for_vectorize)
-  print(new_post_for_vectorize)
+  #print(new_post_for_vectorize)
   return new_post_vec
 
 def dist_raw(v1,v2):
@@ -79,17 +81,19 @@ def similarity():
     }
     
     return jsonify(response)
+
+#맞춤법 검사
 @app.route('/api/spelling', methods=['POST'])
 def pusan_univ_spell():
     data = request.json
-    text = data.get('sen', [])
+    text = data.get('contents', [])
     
     if not text:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
     text = text[0]
     text = text.replace('\n', '\r\n')
     # 2. 맞춤법 검사 요청 (requests)
-    response = requests.post('http://164.125.7.61/speller/results', data={'text1': text})
+    response = requests.post('http://164.125.7.61/speller/results', data={"text1": text})
     try:
         # 3. 응답에서 필요한 내용 추출 (html 파싱)
         data = response.text.split('data = [', 1)[-1].rsplit('];', 1)[0]
@@ -98,6 +102,7 @@ def pusan_univ_spell():
         data = json.loads(data)
         response = {}
         cnt = 1
+        response_s = {}
         for err in data['errInfo']:
             #print(f"입력 내용 : {err['orgStr']}")
             #print(f"대치어 : {err['candWord']}")
@@ -108,19 +113,25 @@ def pusan_univ_spell():
                '대치어:' : err['candWord'],
                '도움말: ' : err['help'],
             }
-            response[cnt] = response_add
+            response_s[cnt] = response_add
             cnt+=1
+        response['에러 내용'] = response_s
+        response['점수'] = cnt
         return jsonify(response)
+    except json.JSONDecodeError:
+      response = {'메시지': '에러가 발생하지 않았습니다. 문장이 완전합니다.'}
+      return jsonify(response)
     except:
-        #print('오류가 발생하지 않았습니다. 문장이 완전합니다.')
-        response = {'결과 ': '오류가 발생하지 않았습니다. 문장이 완전합니다.'}
-        return jsonify(response)
+       response = {'메시지': '맞춤법 검사기 자체의 에러입니다.'}
+       return jsonify(response)
+    
+    
+#글자수 검사
 @app.route('/api/countCheck', methods=['POST'])   
 def countCheck():
     data = request.json
     question = data.get('question', [])
-    answer = data.get('answer' , [])
-    print(question, answer)
+    answer = data.get('contents' , [])
     if not question or not answer:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
     question = question[0]
@@ -129,18 +140,96 @@ def countCheck():
         if question[i] == '자':
             max_length = question[i-3:i]
             min_length = question[i-7:i-4]
-    #print(len(answer))
+    score = 0
     if len(answer) > int(max_length):
         #print('글자 수가 초과되었습니다.')
         result = str(len(answer))+ '자. 글자 수가 초과되었습니다.'
+        score = 0
     elif len(answer) < int(min_length):
         #print('글자 수가 부족합니다.')
         result =  str(len(answer))+ '자. 글자 수가 부족합니다.'
+        score -=1
     else:
         #print('글자 수가 적당합니다')
         result = str(len(answer))+ '자. 글자 수가 적당합니다'
-    response = {'글자 수 검사: ' : result}
+        score += 1
+    response = {'글자 수 검사' : result, '점수' : score}
     return jsonify(response)
+
+#표현 가점, 감점
+@app.route('/api/Express', methods=['POST']) 
+def Express():
+  data = request.json
+  sentence = data.get('contents', [])
+  #문장 끝 표현 체크, 감점
+  check = t.pos(sentence[0][:])
+  cnt = 0
+  for i in range(len(check)):
+    if check[i][0].endswith('습니다') or check[i][0].endswith('요'):
+      cnt+=1
+
+  #대조 표현 사용, 가점
+  pattern = re.compile(r'지만|는데 반해|와 달리|과 달리')
+  matches = re.findall(pattern, sentence[0])
+  result = '문장 끝 표현 ' + str(cnt) + '회, 대조표현 사용 ' + str(len(matches)) + '회 사용함.'
+  result_cnt = cnt*0.5 + len(matches)
+  response = {"표현 검사" : result , "점수" : result_cnt}
+  return jsonify(response)
+
+#점수 계산 함수
+def calculate_score(sim, sp, le, ex):
+    #53번 기준 30점
+    result = 25 - sim*5 + 3 - sp*0.5 + 2 * le + ex * 0.5
+    if result >=30:
+      result = 30
+    return result
+   
+   
+   
+@app.route('/api/main' , methods=['POST'])
+def get_score():
+  data = request.json
+  question = data.get('question', [])
+  contents = data.get('contents', [])
+  new_post = data.get('new_post', [])
+  #print(contents, new_post)
+  #similar = '성공'
+  #response = {'메시지': similar}
+  #사용자 답안과 , 실제 답안 content, new_post
+  test1 = {"contents":contents, "new_post": new_post}
+  similar = requests.post('http://127.0.0.1:5000/api/similarity', json=test1)
+  #사용자 답안 content
+  test2 = {"contents":contents}
+  spell = requests.post('http://127.0.0.1:5000/api/spelling', json=test2)
+  #문제와 사용자 답안 question
+  test3 = {"question": question, "contents": contents}
+  length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
+  #사용자 답안 content
+  test4 = {"contents":contents}
+  expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
+  similar_data = similar.json()
+  s_score = similar_data.get('best_dist', []) #유사성
+  if s_score > 1:
+     s_message = '유사성이 매우 낮습니다.'
+  else:
+     s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
+  spell_data = spell.json()
+  sp_score = spell_data.get('점수', []) #스펠링
+  sp_message = spell_data.get('에러 내용', {})
+
+  length_data = length.json()
+  len_score = length_data.get('점수', []) #글자수
+  len_message = length_data.get('글자 수 검사', [])
+
+  ex_data = expressto.json()
+  ex_score = ex_data.get('점수', []) #표현점수
+  ex_message = ex_data.get('표현 검사', [])
+  
+  result_score = calculate_score(s_score, sp_score, len_score, ex_score)
+  
+  response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
+  return jsonify(response)
+  
 
 if __name__ == '__main__':
     app.run(debug=True)
