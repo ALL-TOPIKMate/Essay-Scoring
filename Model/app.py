@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import konlpy
-from konlpy.tag import Okt
+from konlpy.tag import Okt, Kkma
 import scipy as sp
 from flask import Flask, request, jsonify
 import requests
@@ -156,7 +156,7 @@ def countCheck():
     response = {'글자 수 검사' : result, '점수' : score}
     return jsonify(response)
 
-#표현 가점, 감점
+#53번 표현 가점, 감점
 @app.route('/api/Express', methods=['POST']) 
 def Express():
   data = request.json
@@ -164,8 +164,8 @@ def Express():
   #문장 끝 표현 체크, 감점
   check = t.pos(sentence[0][:])
   cnt = 0
-  for i in range(len(check)):
-    if check[i][0].endswith('습니다') or check[i][0].endswith('요'):
+  for i in range(len(check)): #-ㅂ/ 습니다, -아/-어요 
+    if check[i][0].endswith('습니다') or check[i][0].endswith('ㅂ니다') or check[i][0].endswith('요') or check[i][0].endswith('아요') or check[i][0].endswith('어요') :
       cnt+=1
 
   #대조 표현 사용, 가점
@@ -176,9 +176,36 @@ def Express():
   response = {"표현 검사" : result , "점수" : result_cnt}
   return jsonify(response)
 
+#51번, 52번 
 @app.route('/api/ExpressShort', methods=['POST']) 
 def ExpressShort():
+  cnt = 0
+  kkma = Kkma()
   data = request.json
+  q_num = data.get('q_num', )
+  sentence = data.get('contents', [])
+  answer = data.get('answer', [])
+  #print(sentence[:], answer[:])
+  if q_num == 51:
+    sen = kkma.pos(sentence[0])
+    sen2 = kkma.pos(answer[0])
+    if sen[-1][1] == sen2[-1][1]:
+      #print('동일', sen[-1][1], sen2[-1][1])
+      cnt+=1
+    else:
+      #print('비동일', sen[-1][1], sen2[-1][1])
+      pass
+
+  elif q_num == 52:
+     check = t.pos(sentence[0][:])
+     for i in range(len(check)): #-ㅂ/ 습니다, -아/-어요 
+      if check[i][0].endswith('ㄴ다') or check[i][0].endswith('다') or check[i][0].endswith('는다') :
+        cnt+=1
+  result = '문장 끝 표현 ' + str(cnt) + '회 사용'
+  result_cnt = cnt*0.5 
+  response = {"표현 검사" : result , "점수" : result_cnt}
+  return jsonify(response)
+  
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
@@ -186,13 +213,16 @@ def calculate_score53(sim, sp, le, ex):
     if result >=30:
       result = 30
     return result
-def calculate_score(num):
+def calculate_score(num, sim, sp, ex):
     #51번
     if num == 51:
-      print('51번 채점중')
+      #print('51번 채점중')
+      result = 7 - sim*5 + sp + ex * 2
     #52번
     elif num == 52:
-       print('52번 채점')
+       #print('52번 채점')
+       result = 7 - sim*5 + sp*1.5 + ex * 1.5
+    return result
    
    
    
@@ -203,19 +233,28 @@ def get_score():
   question = data.get('question', [])
   contents = data.get('contents', [])
   new_post = data.get('new_post', [])
-  
+  #print(quest_num, contents, new_post)
   #사용자 답안과 , 실제 답안 content, new_post
   test1 = {"contents":contents, "new_post": new_post}
   similar = requests.post('http://127.0.0.1:5000/api/similarity', json=test1)
   #사용자 답안 content
   test2 = {"contents":contents}
   spell = requests.post('http://127.0.0.1:5000/api/spelling', json=test2)
-  #문제와 사용자 답안 question
-  test3 = {"question": question, "contents": contents}
-  length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
-  #사용자 답안 content
-  test4 = {"contents":contents}
-  expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
+  
+
+  if quest_num == 53:
+    #문제와 사용자 답안 question
+    test3 = {"question": question, "contents": contents}
+    length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
+    #사용자 답안 content
+    test4 = {"contents":contents}
+    expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
+    length_data = length.json()
+    len_score = length_data.get('점수', []) #글자수
+    len_message = length_data.get('글자 수 검사', [])
+  elif quest_num <= 52:
+     test4 = {"contents": contents, "answer": new_post, "q_num": quest_num}
+     expressto = requests.post('http://127.0.0.1:5000/api/ExpressShort', json= test4)
   similar_data = similar.json()
   s_score = similar_data.get('best_dist', []) #유사성
   if s_score > 1:
@@ -223,16 +262,17 @@ def get_score():
   else:
     s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
   spell_data = spell.json()
-  sp_score = spell_data.get('점수', []) #스펠링
-  sp_message = spell_data.get('에러 내용', {})
-
-  length_data = length.json()
-  len_score = length_data.get('점수', []) #글자수
-  len_message = length_data.get('글자 수 검사', [])
+  if '메시지' in spell_data:
+     sp_score = 0
+     sp_message = spell_data['메시지']
+  else:
+    sp_score = spell_data.get('점수', []) #스펠링
+    sp_message = spell_data.get('에러 내용', {})
 
   ex_data = expressto.json()
   ex_score = ex_data.get('점수', []) #표현점수
   ex_message = ex_data.get('표현 검사', [])
+  #print(s_score, sp_score, ex_score)
   if quest_num == 53:
     result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
     response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
@@ -242,6 +282,8 @@ def get_score():
      return jsonify(response)
   elif quest_num <= 52: #51번과 52번 일 때의 계산
      response={'result': '51번과 52번'}
+     result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
+     response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
      return jsonify(response)
      #result_score(calculate_score(quest_num))
   else:
