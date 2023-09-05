@@ -268,10 +268,10 @@ def get_score():
   else:
     sp_score = spell_data.get('점수', []) #스펠링
     sp_message = spell_data.get('에러 내용', {})
-
-  ex_data = expressto.json()
-  ex_score = ex_data.get('점수', []) #표현점수
-  ex_message = ex_data.get('표현 검사', [])
+  if quest_num <= 53:
+    ex_data = expressto.json()
+    ex_score = ex_data.get('점수', []) #표현점수
+    ex_message = ex_data.get('표현 검사', [])
   #print(s_score, sp_score, ex_score)
   if quest_num == 53:
     result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
@@ -291,4 +291,4 @@ def get_score():
      return jsonify(response)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
