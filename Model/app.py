@@ -6,6 +6,8 @@ from flask import Flask, request, jsonify
 import requests
 import json
 import re
+from gpt_response import respond_result
+
 app = Flask(__name__)
 t = Okt()
 
@@ -232,63 +234,66 @@ def get_score():
   quest_num = data.get('number', )
   question = data.get('question', [])
   contents = data.get('contents', [])
-  new_post = data.get('new_post', [])
-  #print(quest_num, contents, new_post)
-  #사용자 답안과 , 실제 답안 content, new_post
-  test1 = {"contents":contents, "new_post": new_post}
-  similar = requests.post('http://127.0.0.1:5000/api/similarity', json=test1)
-  #사용자 답안 content
-  test2 = {"contents":contents}
-  spell = requests.post('http://127.0.0.1:5000/api/spelling', json=test2)
-  
-
-  if quest_num == 53:
-    #문제와 사용자 답안 question
-    test3 = {"question": question, "contents": contents}
-    length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
-    #사용자 답안 content
-    test4 = {"contents":contents}
-    expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
-    length_data = length.json()
-    len_score = length_data.get('점수', []) #글자수
-    len_message = length_data.get('글자 수 검사', [])
-  elif quest_num <= 52:
-     test4 = {"contents": contents, "answer": new_post, "q_num": quest_num}
-     expressto = requests.post('http://127.0.0.1:5000/api/ExpressShort', json= test4)
-  similar_data = similar.json()
-  s_score = similar_data.get('best_dist', []) #유사성
-  if s_score > 1:
-    s_message = '유사성이 매우 낮습니다.'
-  else:
-    s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
-  spell_data = spell.json()
-  if '메시지' in spell_data:
-     sp_score = 0
-     sp_message = spell_data['메시지']
-  else:
-    sp_score = spell_data.get('점수', []) #스펠링
-    sp_message = spell_data.get('에러 내용', {})
   if quest_num <= 53:
-    ex_data = expressto.json()
-    ex_score = ex_data.get('점수', []) #표현점수
-    ex_message = ex_data.get('표현 검사', [])
-  #print(s_score, sp_score, ex_score)
-  if quest_num == 53:
-    result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
-    response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
-    return jsonify(response)
-  elif quest_num == 54:
-     response={'result': '54번은 chatgpt'}
-     return jsonify(response)
-  elif quest_num <= 52: #51번과 52번 일 때의 계산
-     response={'result': '51번과 52번'}
-     result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
-     response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
-     return jsonify(response)
-     #result_score(calculate_score(quest_num))
+    new_post = data.get('new_post', [])
+    #사용자 답안과 , 실제 답안 content, new_post
+    test1 = {"contents":contents, "new_post": new_post}
+    similar = requests.post('http://127.0.0.1:5000/api/similarity', json=test1)
+    #사용자 답안 content
+    test2 = {"contents":contents}
+    spell = requests.post('http://127.0.0.1:5000/api/spelling', json=test2)
+
+    if quest_num == 53:
+      #문제와 사용자 답안 question
+      test3 = {"question": question, "contents": contents}
+      length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
+      #사용자 답안 content
+      test4 = {"contents":contents}
+      expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
+      length_data = length.json()
+      len_score = length_data.get('점수', []) #글자수
+      len_message = length_data.get('글자 수 검사', [])
+    elif quest_num <= 52:
+      test4 = {"contents": contents, "answer": new_post, "q_num": quest_num}
+      expressto = requests.post('http://127.0.0.1:5000/api/ExpressShort', json= test4)
+    similar_data = similar.json()
+    s_score = similar_data.get('best_dist', []) #유사성
+    if s_score > 1:
+      s_message = '유사성이 매우 낮습니다.'
+    else:
+      s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
+    spell_data = spell.json()
+    if '메시지' in spell_data:
+      sp_score = 0
+      sp_message = spell_data['메시지']
+    else:
+      sp_score = spell_data.get('점수', []) #스펠링
+      sp_message = spell_data.get('에러 내용', {})
+    if quest_num <= 53:
+      ex_data = expressto.json()
+      ex_score = ex_data.get('점수', []) #표현점수
+      ex_message = ex_data.get('표현 검사', [])
+    #print(s_score, sp_score, ex_score)
+    if quest_num == 53:
+      result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
+      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
+      return jsonify(response)
+    elif quest_num <= 52: #51번과 52번 일 때의 계산
+      response={'result': '51번과 52번'}
+      result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
+      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
+      return jsonify(response)
+      #result_score(calculate_score(quest_num))
+    else:
+      response = {'result': 'error'}
+      return jsonify(response)
   else:
-     response = {'result': 'error'}
-     return jsonify(response)
+      response={'result': '54번은 chatgpt'}
+      quest_con = data.get('quest_con', [])
+      #print(question, quest_con, contents)
+      gpt_result = respond_result(question[0], quest_con[0], contents[0])
+      response = {'채점결과': gpt_result}
+      return jsonify(response)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
