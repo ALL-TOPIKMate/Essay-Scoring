@@ -1,8 +1,8 @@
 import os
 import openai
 
-def respond_result(question, quest_content, user_answer):
-    openai.api_key = 'OPEN_API_KEY' #호출할 때는 메모장에서 가져오기
+def gpt_response(question, quest_content, user_answer):
+    openai.api_key = os.environ.get('OPENAI_API_KEY') #호출할 때는 메모장에서 가져오기
     user_content = "질문: " + question +"\n" + '제시문: ' + quest_content + "\n\n" + '사용자 답: ' + user_answer
     message_info = [{
         "role": "system",
