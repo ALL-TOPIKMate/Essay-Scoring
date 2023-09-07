@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 import requests
 import json
 import re
-from gpt_response import respond_result
+from gpt_response import gpt_response
 from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, resources={r"/api/*":{"origins":"*"}})
@@ -292,7 +292,7 @@ def get_score():
       response={'result': '54번은 chatgpt'}
       quest_con = data.get('quest_con', [])
       #print(question, quest_con, contents)
-      gpt_result = respond_result(question[0], quest_con[0], contents[0])
+      gpt_result = gpt_response(question[0], quest_con[0], contents[0])
       response = {'채점결과': gpt_result}
       return jsonify(response)
 
