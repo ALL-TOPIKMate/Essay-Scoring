@@ -7,8 +7,9 @@ import requests
 import json
 import re
 from gpt_response import respond_result
-
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app, resources={r"/api/*":{"origins":"*"}})
 t = Okt()
 
 #문장 유사도
