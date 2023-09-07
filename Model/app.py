@@ -6,7 +6,9 @@ from flask import Flask, request, jsonify
 import requests
 import json
 import re
+from flask_cors import CORS
 app = Flask(__name__)
+CORS(app, resources={r"/api/*":{"origins":"*"}})
 t = Okt()
 
 #문장 유사도
