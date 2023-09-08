@@ -17,4 +17,4 @@ RUN apt-get update && apt-get install -y g++ default-jdk
 RUN pip3 install -r requirements.txt
 
 # Flask 앱 실행
-CMD ["python3", "app.py"]
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
