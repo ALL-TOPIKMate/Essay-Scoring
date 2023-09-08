@@ -2,15 +2,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import konlpy
 from konlpy.tag import Okt, Kkma
 import scipy as sp
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
 import json
 import re
 from gpt_response import gpt_response
-from flask_cors import CORS
+#from flask_cors import CORS
 app = Flask(__name__)
-CORS(app, resources={r"/api/*":{"origins":"*"}})
+#CORS(app, resources={r"/api/*":{"origins":"*"}})
 t = Okt()
+
+@app.route("/")
+def index():
+    return render_template('./index.html')
 
 #문장 유사도
 vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
