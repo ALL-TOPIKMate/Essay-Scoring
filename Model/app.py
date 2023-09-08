@@ -7,9 +7,9 @@ import requests
 import json
 import re
 from gpt_response import gpt_response
-#from flask_cors import CORS
+from flask_cors import CORS
 app = Flask(__name__)
-#CORS(app, resources={r"/api/*":{"origins":"*"}})
+cors = CORS(app, resources={r"/api/*":{"origins":"https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
 t = Okt()
 
 @app.route("/")
