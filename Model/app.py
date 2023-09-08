@@ -12,7 +12,7 @@ app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*":{"origins":"https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
 t = Okt()
 
-@app.route("/")
+@app.route("/", methods=['GET', 'POST'])
 def index():
     return render_template('./index.html')
 
@@ -68,7 +68,7 @@ def check_distance(X, new_post_vec, contents):
       result.append(contents[i])
   return best_i, best_dist, result
 
-@app.route('/api/similarity', methods=['POST'])
+@app.route('/api/similarity', methods=['GET', 'POST'])
 def similarity():
     data = request.json
     contents = data.get('contents', [])
@@ -90,7 +90,7 @@ def similarity():
     return jsonify(response)
 
 #맞춤법 검사
-@app.route('/api/spelling', methods=['POST'])
+@app.route('/api/spelling', methods=['GET', 'POST'])
 def pusan_univ_spell():
     data = request.json
     text = data.get('contents', [])
@@ -134,7 +134,7 @@ def pusan_univ_spell():
     
     
 #글자수 검사
-@app.route('/api/countCheck', methods=['POST'])   
+@app.route('/api/countCheck', methods=['GET', 'POST'])   
 def countCheck():
     data = request.json
     question = data.get('question', [])
@@ -164,7 +164,7 @@ def countCheck():
     return jsonify(response)
 
 #53번 표현 가점, 감점
-@app.route('/api/Express', methods=['POST']) 
+@app.route('/api/Express', methods=['GET', 'POST']) 
 def Express():
   data = request.json
   sentence = data.get('contents', [])
@@ -184,7 +184,7 @@ def Express():
   return jsonify(response)
 
 #51번, 52번 
-@app.route('/api/ExpressShort', methods=['POST']) 
+@app.route('/api/ExpressShort', methods=['GET', 'POST']) 
 def ExpressShort():
   cnt = 0
   kkma = Kkma()
@@ -233,7 +233,7 @@ def calculate_score(num, sim, sp, ex):
    
    
    
-@app.route('/api/main' , methods=['POST'])
+@app.route('/api/main' , methods=['GET', 'POST'])
 def get_score():
   data = request.json
   quest_num = data.get('number', )
