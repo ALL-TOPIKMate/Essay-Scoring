@@ -9,7 +9,7 @@ import re
 from gpt_response import gpt_response
 from flask_cors import CORS
 app = Flask(__name__)
-cors = CORS(app, resources={r"/api/*":{"origins":"https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
+cors = CORS(app, resources={r"/api/*":{"origins":"https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}, "methods": ["GET", "POST"]})
 t = Okt()
 
 @app.route("/", methods=['GET', 'POST'])
