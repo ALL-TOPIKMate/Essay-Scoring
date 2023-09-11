@@ -2,14 +2,19 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import konlpy
 from konlpy.tag import Okt, Kkma
 import scipy as sp
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import requests
 import json
 import re
+from gpt_response import gpt_response
 from flask_cors import CORS
 app = Flask(__name__)
-CORS(app, resources={r"/api/*":{"origins":"*"}})
+cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
 t = Okt()
+
+@app.route("/", methods=['GET', 'POST'])
+def index():
+    return render_template('./index.html')
 
 #문장 유사도
 vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
@@ -63,11 +68,7 @@ def check_distance(X, new_post_vec, contents):
       result.append(contents[i])
   return best_i, best_dist, result
 
-@app.route('/api/similarity', methods=['POST'])
-def similarity():
-    data = request.json
-    contents = data.get('contents', [])
-    new_post = data.get('new_post', [])
+def similarity(contents, new_post):
     
     if not contents or not new_post:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
@@ -82,13 +83,10 @@ def similarity():
         'result': result
     }
     
-    return jsonify(response)
+    return response
 
 #맞춤법 검사
-@app.route('/api/spelling', methods=['POST'])
-def pusan_univ_spell():
-    data = request.json
-    text = data.get('contents', [])
+def pusan_univ_spell(text):
     
     if not text:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
@@ -119,21 +117,17 @@ def pusan_univ_spell():
             cnt+=1
         response['에러 내용'] = response_s
         response['점수'] = cnt
-        return jsonify(response)
+        return response
     except json.JSONDecodeError:
       response = {'메시지': '에러가 발생하지 않았습니다. 문장이 완전합니다.'}
-      return jsonify(response)
+      return response
     except:
        response = {'메시지': '맞춤법 검사기 자체의 에러입니다.'}
-       return jsonify(response)
+       return response
     
     
 #글자수 검사
-@app.route('/api/countCheck', methods=['POST'])   
-def countCheck():
-    data = request.json
-    question = data.get('question', [])
-    answer = data.get('contents' , [])
+def countCheck(question, answer):
     if not question or not answer:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
     question = question[0]
@@ -156,13 +150,10 @@ def countCheck():
         result = str(len(answer))+ '자. 글자 수가 적당합니다'
         score += 1
     response = {'글자 수 검사' : result, '점수' : score}
-    return jsonify(response)
+    return response
 
 #53번 표현 가점, 감점
-@app.route('/api/Express', methods=['POST']) 
-def Express():
-  data = request.json
-  sentence = data.get('contents', [])
+def Express(sentence):
   #문장 끝 표현 체크, 감점
   check = t.pos(sentence[0][:])
   cnt = 0
@@ -176,17 +167,12 @@ def Express():
   result = '문장 끝 표현 ' + str(cnt) + '회, 대조표현 사용 ' + str(len(matches)) + '회 사용함.'
   result_cnt = cnt*0.5 + len(matches)
   response = {"표현 검사" : result , "점수" : result_cnt}
-  return jsonify(response)
+  return response
 
 #51번, 52번 
-@app.route('/api/ExpressShort', methods=['POST']) 
-def ExpressShort():
+def ExpressShort(q_num, sentence, answer):
   cnt = 0
   kkma = Kkma()
-  data = request.json
-  q_num = data.get('q_num', )
-  sentence = data.get('contents', [])
-  answer = data.get('answer', [])
   #print(sentence[:], answer[:])
   if q_num == 51:
     sen = kkma.pos(sentence[0])
@@ -206,7 +192,7 @@ def ExpressShort():
   result = '문장 끝 표현 ' + str(cnt) + '회 사용'
   result_cnt = cnt*0.5 
   response = {"표현 검사" : result , "점수" : result_cnt}
-  return jsonify(response)
+  return response
   
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
@@ -228,69 +214,68 @@ def calculate_score(num, sim, sp, ex):
    
    
    
-@app.route('/api/main' , methods=['POST'])
+@app.route('/main' , methods=['GET', 'POST'])
 def get_score():
   data = request.json
   quest_num = data.get('number', )
   question = data.get('question', [])
   contents = data.get('contents', [])
-  new_post = data.get('new_post', [])
-  #print(quest_num, contents, new_post)
-  #사용자 답안과 , 실제 답안 content, new_post
-  test1 = {"contents":contents, "new_post": new_post}
-  similar = requests.post('http://127.0.0.1:5000/api/similarity', json=test1)
-  #사용자 답안 content
-  test2 = {"contents":contents}
-  spell = requests.post('http://127.0.0.1:5000/api/spelling', json=test2)
-  
-
-  if quest_num == 53:
-    #문제와 사용자 답안 question
-    test3 = {"question": question, "contents": contents}
-    length = requests.post('http://127.0.0.1:5000/api/countCheck', json=test3)
-    #사용자 답안 content
-    test4 = {"contents":contents}
-    expressto = requests.post('http://127.0.0.1:5000/api/Express', json= test4)
-    length_data = length.json()
-    len_score = length_data.get('점수', []) #글자수
-    len_message = length_data.get('글자 수 검사', [])
-  elif quest_num <= 52:
-     test4 = {"contents": contents, "answer": new_post, "q_num": quest_num}
-     expressto = requests.post('http://127.0.0.1:5000/api/ExpressShort', json= test4)
-  similar_data = similar.json()
-  s_score = similar_data.get('best_dist', []) #유사성
-  if s_score > 1:
-    s_message = '유사성이 매우 낮습니다.'
-  else:
-    s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
-  spell_data = spell.json()
-  if '메시지' in spell_data:
-     sp_score = 0
-     sp_message = spell_data['메시지']
-  else:
-    sp_score = spell_data.get('점수', []) #스펠링
-    sp_message = spell_data.get('에러 내용', {})
   if quest_num <= 53:
-    ex_data = expressto.json()
-    ex_score = ex_data.get('점수', []) #표현점수
-    ex_message = ex_data.get('표현 검사', [])
-  #print(s_score, sp_score, ex_score)
-  if quest_num == 53:
-    result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
-    response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
-    return jsonify(response)
-  elif quest_num == 54:
-     response={'result': '54번은 chatgpt'}
-     return jsonify(response)
-  elif quest_num <= 52: #51번과 52번 일 때의 계산
-     response={'result': '51번과 52번'}
-     result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
-     response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
-     return jsonify(response)
-     #result_score(calculate_score(quest_num))
+    new_post = data.get('new_post', [])
+    #사용자 답안과 , 실제 답안 content, new_post
+    similar = similarity(contents, new_post)
+    #사용자 답안 content
+    spell = pusan_univ_spell(contents)
+
+    if quest_num == 53:
+      #문제와 사용자 답안 question
+      length = countCheck(question, contents)
+      #사용자 답안 content
+      expressto = Express(contents)
+      length_data = length.json()
+      len_score = length_data.get('점수', []) #글자수
+      len_message = length_data.get('글자 수 검사', [])
+    elif quest_num <= 52:
+      expressto = ExpressShort(quest_num, contents, new_post)
+    #similar_data = similar.json()
+    s_score = similar['best_dist'] #유사성
+    if s_score > 1:
+      s_message = '유사성이 매우 낮습니다.'
+    else:
+      s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
+    #spell_data = spell.json()
+    if spell['메시지']:
+      sp_score = 0
+      sp_message = spell['메시지']
+    else:
+      sp_score = spell['점수'] #스펠링
+      sp_message = spell['에러 내용']
+    if quest_num <= 53:
+      #ex_data = expressto.json()
+      print(expressto)
+      ex_score = expressto['점수'] #표현점수
+      ex_message = expressto['표현 검사']
+    #print(s_score, sp_score, ex_score)
+    if quest_num == 53:
+      result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
+      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
+      return jsonify(response)
+    elif quest_num <= 52: #51번과 52번 일 때의 계산
+      response={'result': '51번과 52번'}
+      result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
+      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
+      return jsonify(response)
+      #result_score(calculate_score(quest_num))
+    else:
+      response = {'result': 'error'}
+      return jsonify(response)
   else:
-     response = {'result': 'error'}
-     return jsonify(response)
+      response={'result': '54번은 chatgpt'}
+      quest_con = data.get('quest_con', [])
+      #print(question, quest_con, contents)
+      gpt_result = gpt_response(question[0], quest_con[0], contents[0])
+      response = {'채점결과': gpt_result}
+      return jsonify(response)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port='5000', debug=True)
