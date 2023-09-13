@@ -1,6 +1,5 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
-import konlpy
-from konlpy.tag import Okt, Kkma
+from PyKomoran import * #형태소 분석기 변경
 import scipy as sp
 from flask import Flask, request, jsonify, render_template
 import requests
@@ -10,7 +9,7 @@ from gpt_response import gpt_response
 from flask_cors import CORS
 app = Flask(__name__)
 cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
-t = Okt()
+komoran = Komoran('STABLE')
 
 @app.route("/", methods=['GET', 'POST'])
 def index():
@@ -20,7 +19,15 @@ def index():
 vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
 
 def sentence_token(contents):
-  contents_tokens = [t.morphs(row) for row in contents]
+  contents_tokens = list()
+  for i in range(len(contents)): 
+    result = []
+    test = (komoran.get_plain_text(contents[i])).split(' ')
+    for j in range(len(test)):
+      temp = test[j].split('/')
+      test[j] = temp[0]
+    contents_tokens.append(test)
+
 
   contents_for_vectorize = []
   for content in contents_tokens:
@@ -31,19 +38,20 @@ def sentence_token(contents):
 
   #tf-idf 벡터화
   X = vectorizer.fit_transform(contents_for_vectorize)
-  num_samples, num_features = X.shape
-  #print(num_samples, num_features)
   return X
+
 def new_token(new_post):
-  new_post_tokens = [t.morphs(row) for row in new_post]
+  test = (komoran.get_plain_text(new_post[0])).split(' ')
+  new_post_tokens = []
+  for j in range(len(test)):
+      temp = test[j].split('/')
+      new_post_tokens.append(temp[0])
+
   new_post_for_vectorize = []
-  for content in new_post_tokens:
-    sentence = ''
-    for word in content:
-      sentence = sentence + ' ' + word
-    new_post_for_vectorize.append(sentence)
+  sentence = ' '.join(new_post_tokens)
+  new_post_for_vectorize.append(sentence)
+
   new_post_vec = vectorizer.transform(new_post_for_vectorize)
-  #print(new_post_for_vectorize)
   return new_post_vec
 
 def dist_raw(v1,v2):
@@ -51,7 +59,6 @@ def dist_raw(v1,v2):
   return sp.linalg.norm(delta.toarray())
 
 def check_distance(X, new_post_vec, contents):
-  best_doc = None
   best_dist = 65535
   best_i = None
   result = []
@@ -155,7 +162,10 @@ def countCheck(question, answer):
 #53번 표현 가점, 감점
 def Express(sentence):
   #문장 끝 표현 체크, 감점
-  check = t.pos(sentence[0][:])
+  check = (komoran.get_plain_text(sentence[0][:]).split(' '))
+  for i in range(len(check)):
+     temp = check[i].split('/')
+     check[i] = temp
   cnt = 0
   for i in range(len(check)): #-ㅂ/ 습니다, -아/-어요 
     if check[i][0].endswith('습니다') or check[i][0].endswith('ㅂ니다') or check[i][0].endswith('요') or check[i][0].endswith('아요') or check[i][0].endswith('어요') :
@@ -172,11 +182,16 @@ def Express(sentence):
 #51번, 52번 
 def ExpressShort(q_num, sentence, answer):
   cnt = 0
-  kkma = Kkma()
   #print(sentence[:], answer[:])
   if q_num == 51:
-    sen = kkma.pos(sentence[0])
-    sen2 = kkma.pos(answer[0])
+    sen = (komoran.get_plain_text(sentence[0]).split(' '))
+    sen2 = (komoran.get_plain_text(answer[0]).split(' '))
+    for i in range(len(sen)):
+     temp = sen[i].split('/')
+     sen[i] = temp
+    for i in range(len(sen2)):
+     temp = sen2[i].split('/')
+     sen2[i] = temp
     if sen[-1][1] == sen2[-1][1]:
       #print('동일', sen[-1][1], sen2[-1][1])
       cnt+=1
@@ -185,7 +200,10 @@ def ExpressShort(q_num, sentence, answer):
       pass
 
   elif q_num == 52:
-     check = t.pos(sentence[0][:])
+     check = (komoran.get_plain_text(sentence[0][:]).split(' '))
+     for i in range(len(check)):
+        temp = check[i].split('/')
+        check[i] = temp
      for i in range(len(check)): #-ㅂ/ 습니다, -아/-어요 
       if check[i][0].endswith('ㄴ다') or check[i][0].endswith('다') or check[i][0].endswith('는다') :
         cnt+=1
