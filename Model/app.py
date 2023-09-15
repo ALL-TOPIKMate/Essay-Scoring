@@ -147,15 +147,15 @@ def countCheck(question, answer):
     if len(answer) > int(max_length):
         #print('글자 수가 초과되었습니다.')
         result = str(len(answer))+ '자. 글자 수가 초과되었습니다.'
-        score = 0
+        score = 1
     elif len(answer) < int(min_length):
         #print('글자 수가 부족합니다.')
         result =  str(len(answer))+ '자. 글자 수가 부족합니다.'
-        score -=1
+        score = 0
     else:
         #print('글자 수가 적당합니다')
         result = str(len(answer))+ '자. 글자 수가 적당합니다'
-        score += 1
+        score = 2
     response = {'글자 수 검사' : result, '점수' : score}
     return response
 
@@ -215,7 +215,7 @@ def ExpressShort(q_num, sentence, answer):
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
-    result = 25 - sim*5 + 3 - sp*0.5 + 2 * le + ex * 0.5
+    result = 25 - sim*5 + 5 - sp*0.5 + le + 3-(ex * 0.5)
     if result >=30:
       result = 30
     return result
@@ -223,26 +223,26 @@ def calculate_score(num, sim, sp, ex):
     #51번
     if num == 51:
       #print('51번 채점중')
-      result = 7 - sim*5 + sp + ex * 2
+      result = 3 - sim*5 + 1 - (0.4*sp) + ex * 2
     #52번
     elif num == 52:
        #print('52번 채점')
-       result = 7 - sim*5 + sp*1.5 + ex * 1.5
+       result = 3 - sim*5 + 2.5 - (0.4*sp) + ex * 1.5
     return result
    
    
    
 
-@app.route('/main' , methods=['GET', 'POST'])
+@app.route('/main' , methods=['POST'])
 def get_score():
   data = request.json
   quest_num = data.get('number', )
   question = data.get('question', [])
   contents = data.get('contents', [])
   if quest_num <= 53:
-    new_post = data.get('new_post', [])
-    #사용자 답안과 , 실제 답안 content, new_post
-    similar = similarity(contents, new_post)
+    answer = data.get('answer', [])
+    #사용자 답안과 , 실제 답안 content, answer
+    similar = similarity(contents, answer)
     #사용자 답안 content
     spell = pusan_univ_spell(contents)
 
@@ -255,7 +255,7 @@ def get_score():
       len_score = length_data.get('점수', []) #글자수
       len_message = length_data.get('글자 수 검사', [])
     elif quest_num <= 52:
-      expressto = ExpressShort(quest_num, contents, new_post)
+      expressto = ExpressShort(quest_num, contents, answer)
     #similar_data = similar.json()
     s_score = similar['best_dist'] #유사성
     if s_score > 1:
