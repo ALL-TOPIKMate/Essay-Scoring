@@ -32,7 +32,15 @@ def calculate_score(num, sim, sp, ex):
     #52번
     elif num == 52:
        #print('52번 채점')
-       result = 3 - sim*5 + 2.5 - (0.4*sp) + ex * 1.5
+       result = 3 - sim*5 + 1.5 - (0.4*sp) + ex * 1.5
+    else:
+       pass
+    if result <0:
+      result = 0
+    elif result > 5:
+      result = 5
+    else:
+       pass
     return result
    
 @app.route('/main' , methods=['POST'])
@@ -72,7 +80,6 @@ def get_score():
       sp_message = spell['에러 내용']
     if quest_num <= 53:
       #ex_data = expressto.json()
-      print(expressto)
       ex_score = expressto['점수'] #표현점수
       ex_message = expressto['표현 검사']
     #print(s_score, sp_score, ex_score)
