@@ -1,6 +1,6 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from PyKomoran import *
-from flask import jsonify
+from flask import Flask, request, jsonify, render_template
 import scipy as sp
 komoran = Komoran('STABLE')
 #문장 유사도
