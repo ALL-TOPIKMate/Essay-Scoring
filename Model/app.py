@@ -223,11 +223,11 @@ def calculate_score(num, sim, sp, ex):
     #51번
     if num == 51:
       #print('51번 채점중')
-      result = 3 - sim*5 + 1 - (0.4*sp) + ex * 2
+      result = 3 - sim*5 + 1 - (0.4*sp) + ex * 1
     #52번
     elif num == 52:
        #print('52번 채점')
-       result = 3 - sim*5 + 2.5 - (0.4*sp) + ex * 1.5
+       result = 3 - sim*5 + 1.5 - (0.4*sp) + 0.5 * ex
     return result
    
    
