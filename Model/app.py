@@ -251,14 +251,13 @@ def get_score():
       length = countCheck(question, contents)
       #사용자 답안 content
       expressto = Express(contents)
-      length_data = length.json()
-      len_score = length_data.get('점수', []) #글자수
-      len_message = length_data.get('글자 수 검사', [])
+      len_score = length['점수']#글자수
+      len_message = length['글자 수 검사']
     elif quest_num <= 52:
       expressto = ExpressShort(quest_num, contents, answer)
     #similar_data = similar.json()
     s_score = similar['best_dist'] #유사성
-    if s_score > 1:
+    if s_score > 1.0:
       s_message = '유사성이 매우 낮습니다.'
     else:
       s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
@@ -271,7 +270,6 @@ def get_score():
       sp_message = spell['에러 내용']
     if quest_num <= 53:
       #ex_data = expressto.json()
-      print(expressto)
       ex_score = expressto['점수'] #표현점수
       ex_message = expressto['표현 검사']
     #print(s_score, sp_score, ex_score)
