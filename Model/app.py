@@ -134,16 +134,17 @@ def pusan_univ_spell(text):
     
     
 #글자수 검사
-def countCheck(question, answer):
-    if not question or not answer:
+def countCheck(quest_num, answer):
+    if not quest_num or not answer:
         return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
-    question = question[0]
+    if quest_num == 53:
+       max_length = 300
+       min_length = 200
+    else:
+       max_length = 700
+       min_length = 600
     answer = answer[0]
-    for i in range(len(question)):
-        if question[i] == '자':
-            max_length = question[i-3:i]
-            min_length = question[i-7:i-4]
-    score = 0
+    
     if len(answer) > int(max_length):
         #print('글자 수가 초과되었습니다.')
         result = str(len(answer))+ '자. 글자 수가 초과되었습니다.'
@@ -248,7 +249,7 @@ def get_score():
 
     if quest_num == 53:
       #문제와 사용자 답안 question
-      length = countCheck(question, contents)
+      length = countCheck(quest_num, contents)
       #사용자 답안 content
       expressto = Express(contents)
       len_score = length['점수']#글자수
@@ -289,9 +290,11 @@ def get_score():
   else:
       response={'result': '54번은 chatgpt'}
       quest_con = data.get('quest_con', [])
+      answer = data.get('answer', [])
       #print(question, quest_con, contents)
+      length = countCheck(quest_num, contents)
       gpt_result = gpt_response(question[0], quest_con[0], contents[0])
-      response = {'채점결과': gpt_result}
+      response = {'채점결과': gpt_result, '글자 수 검사': length}
       return jsonify(response)
 
 if __name__ == '__main__':
