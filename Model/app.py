@@ -294,7 +294,7 @@ def get_score():
       #print(question, quest_con, contents)
       length = countCheck(quest_num, contents)
       gpt_result = gpt_response(question[0], quest_con[0], contents[0])
-      response = {'채점결과': gpt_result, '글자 수 검사': length}
+      response = {'채점결과': gpt_result, '글자 수 검사': length['글자 수 검사']}
       return jsonify(response)
 
 if __name__ == '__main__':
