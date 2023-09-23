@@ -7,7 +7,7 @@ import json
 import re
 from gpt_response import gpt_response
 from flask_cors import CORS
-app = Flask(__name__)
+app = Flask(__name__) #상태 알아보기
 cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
 komoran = Komoran('STABLE')
 
