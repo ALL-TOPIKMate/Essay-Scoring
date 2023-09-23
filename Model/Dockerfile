@@ -2,7 +2,7 @@
 FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
+    JAVA_HOME = /usr/lib/jvm/java-17-openjdk-amd64
 # 필요한 패키지 설치
 RUN apt-get update -y && \
     apt-get install -y openjdk-17-jdk python3 python3-pip g++ default-jdk && \
