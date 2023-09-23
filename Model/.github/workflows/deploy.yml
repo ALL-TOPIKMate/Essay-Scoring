@@ -29,6 +29,9 @@ jobs:
               args:
                 - name: FLASK_ENV
                   value: production
+              env:
+                - name: OPENAI_API_KEY
+                  secret: OPENAI_API_KEY
             context:
               git:
                 url: git@github.com:${{ github.repository }}.git
