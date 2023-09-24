@@ -290,10 +290,11 @@ def get_score():
             temp = ''
           else: 
              temp += i
-      if check == answer[0]:
+      if check == contents[0]:
          response['문장 체크'] = '정답'
       else:
          response['문장 체크'] = '수정 필요'
+         response['수정 문장'] = check
       return jsonify(response)
     elif quest_num <= 52: #51번과 52번 일 때의 계산
       response={'result': '51번과 52번'}
