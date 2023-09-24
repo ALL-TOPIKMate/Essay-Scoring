@@ -284,9 +284,9 @@ def get_score():
           if i == '.':
             get_response = gpt_response2(temp)
             if get_response == '정답':
-               check += temp
+               check += temp #수정예정
             else:
-               check += get_response
+               check += get_response #수정예정
             temp = ''
           else: 
              temp += i
