@@ -263,7 +263,7 @@ def get_score():
     else:
       s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
     #spell_data = spell.json()
-    if spell['메시지']:
+    if '메시지' in spell:
       sp_score = 0
       sp_message = spell['메시지']
     else:
