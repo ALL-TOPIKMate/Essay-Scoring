@@ -286,7 +286,7 @@ def get_score():
             if get_response == '정답':
                check += temp
             else:
-               check += gpt_response
+               check += get_response
             temp = ''
           else: 
              temp += i
