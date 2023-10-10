@@ -278,23 +278,8 @@ def get_score():
     if quest_num == 53:
       result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
       response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
-      temp = ''
-      check = ''
-      for i in contents[0]:
-          if i == '.':
-            get_response = gpt_response2(temp)
-            if get_response == '정답':
-               check += temp #수정예정
-            else:
-               check += get_response #수정예정
-            temp = ''
-          else: 
-             temp += i
-      if check == contents[0]:
-         response['문장 체크'] = '정답'
-      else:
-         response['문장 체크'] = '수정 필요'
-         response['수정 문장'] = check
+      gpt_message = gpt_response2(contents)
+      response['gpt_message'] = gpt_message
       return jsonify(response)
     elif quest_num <= 52: #51번과 52번 일 때의 계산
       response={'result': '51번과 52번'}
