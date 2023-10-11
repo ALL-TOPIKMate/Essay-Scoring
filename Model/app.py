@@ -123,7 +123,7 @@ def pusan_univ_spell(text):
           response_s[cnt] = response_add
           cnt+=1
       response['에러 내용'] = response_s
-      response['점수'] = cnt
+      response['점수'] = cnt -1
       return response
   except json.JSONDecodeError:
     response = {'메시지': '에러가 발생하지 않았습니다. 문장이 완전합니다.'}
@@ -209,8 +209,8 @@ def ExpressShort(q_num, sentence, answer):
       if check[i][0].endswith('ㄴ다') or check[i][0].endswith('다') or check[i][0].endswith('는다') :
         cnt+=1
   result = '문장 끝 표현 ' + str(cnt) + '회 사용'
-  result_cnt = cnt*0.5 
-  response = {"표현 검사" : result , "점수" : result_cnt}
+  
+  response = {"표현 검사" : result , "점수" : cnt}
   return response
   
 #점수 계산 함수
@@ -224,11 +224,13 @@ def calculate_score(num, sim, sp, ex):
     #51번
     if num == 51:
       #print('51번 채점중')
-      result = 3 - sim*5 + 1 - (0.4*sp) + ex * 1
+      result = round(3 - sim*3,2) + round(1/sp,2) + ex * 1
+      
     #52번
     elif num == 52:
        #print('52번 채점')
-       result = 3 - sim*5 + 1.5 - (0.4*sp) + 0.5 * ex
+       result = round(3 - sim*3,2) + round(1.5/sp,2)+ 0.5 * ex
+
     return result
    
    
@@ -258,7 +260,7 @@ def get_score():
       expressto = ExpressShort(quest_num, contents, answer)
     #similar_data = similar.json()
     s_score = similar['best_dist'] #유사성
-    if s_score > 1.0:
+    if s_score > 0.5:
       s_message = '유사성이 매우 낮습니다.'
     else:
       s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
