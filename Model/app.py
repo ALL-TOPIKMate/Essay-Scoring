@@ -6,7 +6,6 @@ import requests
 import json
 import re
 from gpt_response import gpt_response
-from gpt_response2 import gpt_response2
 from flask_cors import CORS
 app = Flask(__name__) #상태 알아보기2
 cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
@@ -278,8 +277,6 @@ def get_score():
     if quest_num == 53:
       result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
       response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
-      gpt_message = gpt_response2(contents[0])
-      response['gpt_message'] = gpt_message
       return jsonify(response)
     elif quest_num <= 52: #51번과 52번 일 때의 계산
       response={'result': '51번과 52번'}
