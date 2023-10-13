@@ -116,9 +116,9 @@ def pusan_univ_spell(text):
           #print(f"도움말 : {err['help']}") #여기 apos; 나오고 <br/>이런거 나오는데 혹시 수정해야되면 메시지 작성 바람.
           #print("\n")
           response_add = {
-              '입력 내용:' : err['orgStr'],
-              '대치어:' : err['candWord'],
-              '도움말: ' : err['help'],
+              '입력 내용' : err['orgStr'],
+              '대치어' : err['candWord'],
+              '도움말' : err['help'],
           }
           response_s[cnt] = response_add
           cnt+=1
