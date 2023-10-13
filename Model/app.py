@@ -216,9 +216,18 @@ def ExpressShort(q_num, sentence, answer):
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
-    result = 25 - sim*5 + 5 - sp*0.5 + le + 3-(ex * 0.5)
-    if result >=30:
-      result = 30
+    #유사도 20점, 맞춤법 5점, 글자 수 2점, 표현 점수 3점
+    if sp == 0:
+       sp_score = 5
+    else:
+       sp_score = round(5/sp,2)
+    if ex >= 3:
+       ex_score = 3
+    elif ex> 0:
+       ex_score = 1
+    else:
+       ex_score = 0
+    result = round(20 - sim*20,2) + sp_score + le + ex_score
     return result
 def calculate_score(num, sim, sp, ex):
     #51번
