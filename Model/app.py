@@ -116,14 +116,14 @@ def pusan_univ_spell(text):
           #print(f"도움말 : {err['help']}") #여기 apos; 나오고 <br/>이런거 나오는데 혹시 수정해야되면 메시지 작성 바람.
           #print("\n")
           response_add = {
-              '입력 내용:' : err['orgStr'],
-              '대치어:' : err['candWord'],
-              '도움말: ' : err['help'],
+              '입력 내용' : err['orgStr'],
+              '대치어' : err['candWord'],
+              '도움말' : err['help'],
           }
           response_s[cnt] = response_add
           cnt+=1
       response['에러 내용'] = response_s
-      response['점수'] = cnt
+      response['점수'] = cnt -1
       return response
   except json.JSONDecodeError:
     response = {'메시지': '에러가 발생하지 않았습니다. 문장이 완전합니다.'}
@@ -209,26 +209,44 @@ def ExpressShort(q_num, sentence, answer):
       if check[i][0].endswith('ㄴ다') or check[i][0].endswith('다') or check[i][0].endswith('는다') :
         cnt+=1
   result = '문장 끝 표현 ' + str(cnt) + '회 사용'
-  result_cnt = cnt*0.5 
-  response = {"표현 검사" : result , "점수" : result_cnt}
+  
+  response = {"표현 검사" : result , "점수" : cnt}
   return response
   
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
-    result = 25 - sim*5 + 5 - sp*0.5 + le + 3-(ex * 0.5)
-    if result >=30:
-      result = 30
+    #유사도 20점, 맞춤법 5점, 글자 수 2점, 표현 점수 3점
+    if sp == 0:
+       sp_score = 5
+    else:
+       sp_score = round(5/sp,2)
+    if ex >= 3:
+       ex_score = 3
+    elif ex> 0:
+       ex_score = 1
+    else:
+       ex_score = 0
+    result = round(20 - sim*20,2) + sp_score + le + ex_score
     return result
 def calculate_score(num, sim, sp, ex):
     #51번
     if num == 51:
       #print('51번 채점중')
-      result = 3 - sim*5 + 1 - (0.4*sp) + ex * 1
+      if sp!= 0:
+        result = round(3 - sim*3,2) + round(1/sp,2) + ex * 1
+      else:
+         result = round(3 - sim*3,2) + 1.00 + ex * 1
+      
     #52번
     elif num == 52:
        #print('52번 채점')
-       result = 3 - sim*5 + 1.5 - (0.4*sp) + 0.5 * ex
+      if sp!= 0:
+         result = round(3 - sim*3,2) + round(1.5/sp,2)+ 0.5 * ex
+      else:
+         result = round(3 - sim*3,2) + 1.5+ 0.5 * ex
+      
+
     return result
    
 @app.route('/main' , methods=['POST'])
@@ -255,12 +273,12 @@ def get_score():
       expressto = ExpressShort(quest_num, contents, answer)
     #similar_data = similar.json()
     s_score = similar['best_dist'] #유사성
-    if s_score > 1.0:
+    if s_score > 0.5:
       s_message = '유사성이 매우 낮습니다.'
     else:
       s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
     #spell_data = spell.json()
-    if spell['메시지']:
+    if '메시지' in spell:
       sp_score = 0
       sp_message = spell['메시지']
     else:
@@ -290,7 +308,7 @@ def get_score():
       answer = data.get('answer', [])
       #print(question, quest_con, contents)
       length = countCheck(quest_num, contents)
-      gpt_result = gpt_response(question[0], quest_con[0], contents[0])
+      gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0])
       response = {'채점결과': gpt_result, '글자 수 검사': length['글자 수 검사']}
       return jsonify(response)
 
