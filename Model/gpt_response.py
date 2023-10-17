@@ -1,7 +1,8 @@
 import os
 import openai
+import json
 
-def gpt_response(question, quest_content, user_answer, answer):
+def gpt_response(question, quest_content, user_answer, answer, length):
     updated_question = question.split('600~700자로 글을')[0].strip() + ' 글로 ' + question.split('600~700자로 글을')[1].strip()
     openai.api_key = os.getenv('OPENAI_API_KEY') #호출할 때는 메모장에서 가져오기
     user_content = "문제: " + updated_question +"\n" + '제시문: ' + quest_content + "\n\n" + '사용자 답안: ' + user_answer +"\n"+ '예시 답안' + answer
@@ -21,4 +22,6 @@ def gpt_response(question, quest_content, user_answer, answer):
         presence_penalty=0
     )
     answer = response['choices'][0]['message']['content']
+    answer = json.loads(answer)
+    answer['Length_Check'] = length
     return answer
