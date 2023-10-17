@@ -327,12 +327,12 @@ def get_score():
       answer = data.get('answer', [])
       if len(contents[0]) == 0:
          gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0])
-         response = {'채점결과': gpt_result, '글자 수 검사':  '빈 문자열이라 글자 수 검사가 되지 않았습니다.'}
+         response = {'score': 0, 'Length':  '빈 문자열이라 글자 수 검사가 되지 않았습니다.'}
       else:
         #print(question, quest_con, contents)
         length = countCheck(quest_num, contents)
         gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0])
-        response = {'채점결과': gpt_result, '글자 수 검사': length['글자 수 검사']}
+        gpt_result['Length_Check'] = length['글자 수 검사']
   return jsonify(response)
 
 if __name__ == '__main__':
