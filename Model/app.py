@@ -1,4 +1,3 @@
-import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from PyKomoran import * #형태소 분석기 변경
 import scipy as sp
