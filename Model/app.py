@@ -326,7 +326,6 @@ def get_score():
       quest_con = data.get('quest_con', [])
       answer = data.get('answer', [])
       if len(contents[0]) == 0:
-         gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0])
          response = {'score': 0, 'Length':  '빈 문자열이라 글자 수 검사가 되지 않았습니다.'}
       else:
         #print(question, quest_con, contents)
