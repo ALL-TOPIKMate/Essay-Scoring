@@ -45,18 +45,23 @@ def sentence_token(contents):
     return None
 
 def new_token(new_post):
-  test = (komoran.get_plain_text(new_post[0])).split(' ')
-  new_post_tokens = []
-  for j in range(len(test)):
-      temp = test[j].split('/')
-      new_post_tokens.append(temp[0])
+  new_post_vecs = []  # 결과 벡터를 저장할 리스트
 
-  new_post_for_vectorize = []
-  sentence = ' '.join(new_post_tokens)
-  new_post_for_vectorize.append(sentence)
+  for post in new_post:
+    # 문장을 토큰화하고 형태소만 추출
+    tokens = (komoran.get_plain_text(post)).split(' ')
+    new_post_tokens = [token.split('/')[0] for token in tokens]
 
-  new_post_vec = vectorizer.transform(new_post_for_vectorize)
-  return new_post_vec
+    # 토큰들을 다시 문장으로 변환
+    sentence = ' '.join(new_post_tokens)
+
+    # 문장을 TF-IDF 벡터로 변환
+    new_post_vec = vectorizer.transform([sentence])
+
+    new_post_vecs.append(new_post_vec)
+
+  return new_post_vecs
+
 
 def dist_raw(v1,v2):
   delta = v1 - v2
@@ -66,17 +71,16 @@ def check_distance(X, new_post_vec, contents):
   best_dist = 65535
   best_i = None
   result = []
-  for i in range(len(contents)):
-    post_vec = X.getrow(i)
-    d = dist_raw(post_vec, new_post_vec)
-    #print(d)
-    #print('== Post %i with dist = %.2f : %s' %(i,d, contents[i]))
+  for i, post_vec in enumerate(new_post_vec):
+    d = dist_raw(X, post_vec)
+    #print('== Post %i with dist = %.2f : %s' %(i,d, contents[0]))
     if d < best_dist:
-      best_dist = d
-      best_i = i
-      result = []
-    if d == best_dist:
-      result.append(contents[i])
+        best_dist = d
+        best_i = i
+        result = [contents[0]]
+    elif d == best_dist:
+        result.append(contents[0])
+
   return best_i, best_dist, result
 
 def similarity(contents, new_post):
