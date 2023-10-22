@@ -21,7 +21,6 @@ vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
 def sentence_token(contents):
   contents_tokens = list()
   for i in range(len(contents)): 
-    result = []
     test = (komoran.get_plain_text(contents[i])).split(' ')
     for j in range(len(test)):
       temp = test[j].split('/')
@@ -35,24 +34,34 @@ def sentence_token(contents):
     for word in content:
       sentence = sentence + ' ' + word
     contents_for_vectorize.append(sentence)
-
+    
   #tf-idf 벡터화
-  X = vectorizer.fit_transform(contents_for_vectorize)
-  return X
+  try:
+    X = vectorizer.fit_transform(contents_for_vectorize)
+    return X
+  except ValueError as e:
+    if str(e) == "empty vocabulary; perhaps the documents only contain stop words":
+      print('빈 사전')
+    return None
 
 def new_token(new_post):
-  test = (komoran.get_plain_text(new_post[0])).split(' ')
-  new_post_tokens = []
-  for j in range(len(test)):
-      temp = test[j].split('/')
-      new_post_tokens.append(temp[0])
+  new_post_vecs = []  # 결과 벡터를 저장할 리스트
 
-  new_post_for_vectorize = []
-  sentence = ' '.join(new_post_tokens)
-  new_post_for_vectorize.append(sentence)
+  for post in new_post:
+    # 문장을 토큰화하고 형태소만 추출
+    tokens = (komoran.get_plain_text(post)).split(' ')
+    new_post_tokens = [token.split('/')[0] for token in tokens]
 
-  new_post_vec = vectorizer.transform(new_post_for_vectorize)
-  return new_post_vec
+    # 토큰들을 다시 문장으로 변환
+    sentence = ' '.join(new_post_tokens)
+
+    # 문장을 TF-IDF 벡터로 변환
+    new_post_vec = vectorizer.transform([sentence])
+
+    new_post_vecs.append(new_post_vec)
+
+  return new_post_vecs
+
 
 def dist_raw(v1,v2):
   delta = v1 - v2
@@ -62,33 +71,36 @@ def check_distance(X, new_post_vec, contents):
   best_dist = 65535
   best_i = None
   result = []
-  for i in range(len(contents)):
-    post_vec = X.getrow(i)
-    d = dist_raw(post_vec, new_post_vec)
-    #print(d)
-    #print('== Post %i with dist = %.2f : %s' %(i,d, contents[i]))
+  for i, post_vec in enumerate(new_post_vec):
+    d = dist_raw(X, post_vec)
+    #print('== Post %i with dist = %.2f : %s' %(i,d, contents[0]))
     if d < best_dist:
-      best_dist = d
-      best_i = i
-      result = []
-    if d == best_dist:
-      result.append(contents[i])
+        best_dist = d
+        best_i = i
+        result = [contents[0]]
+    elif d == best_dist:
+        result.append(contents[0])
+
   return best_i, best_dist, result
 
 def similarity(contents, new_post):
     
   if not contents or not new_post:
       return jsonify({'error': 'Invalid input. Missing "contents" or "new_post" parameter.'}), 400
+  #여기 불용어 들어올 때 에러
+  if sentence_token(contents) is not None:
+    X = sentence_token(contents)
+    new_post_vec = new_token(new_post)
+    best_i, best_dist, result = check_distance(X, new_post_vec, contents)
 
-  X = sentence_token(contents)
-  new_post_vec = new_token(new_post)
-  best_i, best_dist, result = check_distance(X, new_post_vec, contents)
-
-  response = {
-      'best_i': best_i,
-      'best_dist': best_dist,
-      'result': result
-  }
+    response = {
+        'best_i': best_i,
+        'best_dist': best_dist,
+        'result': result
+    }
+  else:
+      response = {'에러': '답안에 불용어가 있습니다.'}
+  
   
   return response
 
@@ -257,60 +269,74 @@ def get_score():
   contents = data.get('contents', [])
   if quest_num <= 53:
     answer = data.get('answer', [])
-    #사용자 답안과 , 실제 답안 content, answer
-    similar = similarity(contents, answer)
-    #사용자 답안 content
-    spell = pusan_univ_spell(contents)
-
-    if quest_num == 53:
-      #문제와 사용자 답안 question
-      length = countCheck(quest_num, contents)
+    if contents[0]  == ''  and quest_num < 53:
+       response = {'result_score': 0, 's_message': '빈 문자열이라 유사도 검사가 되지 않았습니다.', 'sp_message': '빈 문자열이라 맞춤법 검사가 되지 않았습니다.', 'ex_message': '빈 문자열이라 표현 검사가 되지 않았습니다.'}
+       return jsonify(response)
+    elif contents[0] == '' and quest_num == 53: #만약 값이 비어있으면
+       response = {'result_score': 0, 's_message': '빈 문자열이라 유사도 검사가 되지 않았습니다.', 'sp_message': '빈 문자열이라 맞춤법 검사가 되지 않았습니다.', 'len_message': '빈 문자열이라 글자 수 검사가 되지 않았습니다.', 'ex_message': '빈 문자열이라 표현 검사가 되지 않았습니다.'}
+       return jsonify(response)
+    else:
+      #사용자 답안과 , 실제 답안 content, answer
+      similar = similarity(contents, answer)
       #사용자 답안 content
-      expressto = Express(contents)
-      len_score = length['점수']#글자수
-      len_message = length['글자 수 검사']
-    elif quest_num <= 52:
-      expressto = ExpressShort(quest_num, contents, answer)
-    #similar_data = similar.json()
-    s_score = similar['best_dist'] #유사성
-    if s_score > 0.5:
-      s_message = '유사성이 매우 낮습니다.'
-    else:
-      s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
-    #spell_data = spell.json()
-    if '메시지' in spell:
-      sp_score = 0
-      sp_message = spell['메시지']
-    else:
-      sp_score = spell['점수'] #스펠링
-      sp_message = spell['에러 내용']
-    if quest_num <= 53:
-      #ex_data = expressto.json()
-      ex_score = expressto['점수'] #표현점수
-      ex_message = expressto['표현 검사']
-    #print(s_score, sp_score, ex_score)
-    if quest_num == 53:
-      result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
-      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
-      return jsonify(response)
-    elif quest_num <= 52: #51번과 52번 일 때의 계산
-      response={'result': '51번과 52번'}
-      result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
-      response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
-      return jsonify(response)
-      #result_score(calculate_score(quest_num))
-    else:
-      response = {'result': 'error'}
-      return jsonify(response)
+      spell = pusan_univ_spell(contents)
+
+      if quest_num == 53:
+        #문제와 사용자 답안 question
+        length = countCheck(quest_num, contents)
+        #사용자 답안 content
+        expressto = Express(contents)
+        len_score = length['점수']#글자수
+        len_message = length['글자 수 검사']
+      elif quest_num <= 52:
+        expressto = ExpressShort(quest_num, contents, answer)
+      #similar_data = similar.json()
+      if '에러' in similar:
+         s_score = 1
+         s_message = '불용어로 인해 유사도 채점이 되지 않습니다.'
+      else:
+        s_score = similar['best_dist'] #유사성
+        if s_score > 0.5:
+          s_message = '유사성이 매우 낮습니다.'
+        else:
+          s_message = '유사성은 높습니다. 나머지 메시지 확인하세요.'
+      #spell_data = spell.json()
+      if '메시지' in spell:
+        sp_score = 0
+        sp_message = spell['메시지']
+      else:
+        sp_score = spell['점수'] #스펠링
+        sp_message = spell['에러 내용']
+      if quest_num <= 53:
+        #ex_data = expressto.json()
+        ex_score = expressto['점수'] #표현점수
+        ex_message = expressto['표현 검사']
+      #print(s_score, sp_score, ex_score)
+      if quest_num == 53:
+        result_score = calculate_score53(s_score, sp_score, len_score, ex_score)  
+        response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message, 'len_message': len_message, 'ex_message': ex_message}
+        return jsonify(response)
+      elif quest_num <= 52: #51번과 52번 일 때의 계산
+        response={'result': '51번과 52번'}
+        result_score = calculate_score(quest_num, s_score, sp_score, ex_score)  
+        response = {'result_score': round(result_score,1), 's_message': s_message, 'sp_message': sp_message,'ex_message': ex_message}
+        return jsonify(response)
+        #result_score(calculate_score(quest_num))
+      else:
+        response = {'result': 'error'}
+        return jsonify(response)
   else:
       response={'result': '54번은 chatgpt'}
       quest_con = data.get('quest_con', [])
       answer = data.get('answer', [])
-      #print(question, quest_con, contents)
-      length = countCheck(quest_num, contents)
-      gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0])
-      response = {'채점결과': gpt_result, '글자 수 검사': length['글자 수 검사']}
-      return jsonify(response)
+      if len(contents[0]) == 0:
+         response = {'score': 0, 'Length':  '빈 문자열이라 글자 수 검사가 되지 않았습니다.'}
+      else:
+        #print(question, quest_con, contents)
+        length = countCheck(quest_num, contents)
+        gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0], length['글자 수 검사'])
+        response = gpt_result
+  return jsonify(response)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port='5000', debug=True)
