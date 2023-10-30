@@ -226,6 +226,8 @@ def ExpressShort(sentence, answer):
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
     #유사도 20점, 맞춤법 5점, 글자 수 2점, 표현 점수 3점
+    if sim > 1:
+       sim = 1
     if sp == 0:
        sp_score = 5
     else:
@@ -239,6 +241,8 @@ def calculate_score53(sim, sp, le, ex):
     result = round(20 - sim*20,2) + sp_score + le + ex_score
     return result
 def calculate_score(num, sim, sp, ex):
+    if sim > 1:
+       sim = 1
     #51번
     if num == 51:
       #print('51번 채점중')
