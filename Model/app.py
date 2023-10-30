@@ -16,7 +16,7 @@ def index():
     return render_template('./index.html')
 
 #문장 유사도
-vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore', analyzer='char')
+vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore', analyzer='word', sublinear_tf=True)
 
 def sentence_token(contents):
   contents_tokens = list()
@@ -68,20 +68,19 @@ def dist_raw(v1,v2):
   return sp.linalg.norm(delta.toarray())
 
 def check_distance(X, new_post_vec, contents):
-  best_dist = 65535
-  best_i = None
-  result = []
-  for i, post_vec in enumerate(new_post_vec):
-    d = dist_raw(X, post_vec)
-    #print('== Post %i with dist = %.2f : %s' %(i,d, contents[0]))
-    if d < best_dist:
-        best_dist = d
-        best_i = i
-        result = [contents[0]]
-    elif d == best_dist:
-        result.append(contents[0])
+    best_dist = 65535
+    best_i = None
+    result = []
+    for i, post_vec in enumerate(new_post_vec):
+        d = dist_raw(X, post_vec)
+        if d < best_dist:
+            best_dist = d
+            best_i = i
+            result = [contents[i]] 
+        elif d == best_dist:
+            result.append(contents[i])
 
-  return best_i, best_dist, result
+    return best_i, best_dist, result
 
 def similarity(contents, new_post):
     
@@ -193,34 +192,32 @@ def Express(sentence):
   return response
 
 #51번, 52번 
-def ExpressShort(q_num, sentence, answer):
-  cnt = 0
+def ExpressShort(sentence, answer):
+  cnt_Result = []
   #print(sentence[:], answer[:])
-  if q_num == 51:
+  for i in range(len(answer)):
+    cnt = 0
     sen = (komoran.get_plain_text(sentence[0]).split(' '))
     sen2 = (komoran.get_plain_text(answer[0]).split(' '))
+
     for i in range(len(sen)):
-     temp = sen[i].split('/')
-     sen[i] = temp
+      temp = sen[i].split('/')
+      sen[i] = temp
     for i in range(len(sen2)):
-     temp = sen2[i].split('/')
-     sen2[i] = temp
-    if sen[-1][1] == sen2[-1][1]:
+      temp = sen2[i].split('/')
+      sen2[i] = temp
+    if sen[-1][1] == sen2[-1][1] and sen[-1][0] == sen2[-1][0]: #모든 값이 같은 경우
       #print('동일', sen[-1][1], sen2[-1][1])
-      cnt+=1
+      cnt=1
+    elif sen[-1][1] == sen2[-1][1]: #문법 종류는 맞으나 완전히 답안이 같지 않은 경우
+        cnt = 0.5
     else:
       #print('비동일', sen[-1][1], sen2[-1][1])
-      pass
+      cnt = 0
+    cnt_Result.append(cnt)
 
-  elif q_num == 52:
-     check = (komoran.get_plain_text(sentence[0][:]).split(' '))
-     for i in range(len(check)):
-        temp = check[i].split('/')
-        check[i] = temp
-     for i in range(len(check)): #-ㅂ/ 습니다, -아/-어요 
-      if check[i][0].endswith('ㄴ다') or check[i][0].endswith('다') or check[i][0].endswith('는다') :
-        cnt+=1
-  result = '문장 끝 표현 ' + str(cnt) + '회 사용'
+  
+  result = '문장 끝 표현 ' + str(max(cnt_Result)) + '회 사용'
   
   response = {"표현 검사" : result , "점수" : cnt}
   return response
@@ -289,7 +286,7 @@ def get_score():
         len_score = length['점수']#글자수
         len_message = length['글자 수 검사']
       elif quest_num <= 52:
-        expressto = ExpressShort(quest_num, contents, answer)
+        expressto = ExpressShort(contents, answer)
       #similar_data = similar.json()
       if '에러' in similar:
          s_score = 1
