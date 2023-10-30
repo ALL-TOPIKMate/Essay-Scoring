@@ -16,7 +16,7 @@ def index():
     return render_template('./index.html')
 
 #문장 유사도
-vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore')
+vectorizer = TfidfVectorizer(min_df = 1, decode_error = 'ignore', analyzer='char')
 
 def sentence_token(contents):
   contents_tokens = list()
