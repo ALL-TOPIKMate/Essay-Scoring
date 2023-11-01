@@ -76,9 +76,9 @@ def check_distance(X, new_post_vec, contents):
         if d < best_dist:
             best_dist = d
             best_i = i
-            result = [contents[i]] 
+            result = [contents[0]] 
         elif d == best_dist:
-            result.append(contents[i])
+            result.append(contents[0])
 
     return best_i, best_dist, result
 
