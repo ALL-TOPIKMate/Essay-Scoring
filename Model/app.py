@@ -187,7 +187,9 @@ def Express(sentence):
   pattern = re.compile(r'지만|는데 반해|와 달리|과 달리')
   matches = re.findall(pattern, sentence[0])
   result = '문장 끝 표현 ' + str(cnt) + '회, 대조표현 사용 ' + str(len(matches)) + '회 사용함.'
-  result_cnt = cnt*0.5 + len(matches)
+  result_cnt = -1 * cnt + len(matches)
+  if result_cnt < 0:
+     result_cnt = 0
   response = {"표현 검사" : result , "점수" : result_cnt}
   return response
 
@@ -225,20 +227,19 @@ def ExpressShort(sentence, answer):
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
-    #유사도 20점, 맞춤법 5점, 글자 수 2점, 표현 점수 3점
+    #유사도 22점, 맞춤법 5점, 글자 수 2점, 표현 점수 1점
     if sim > 1:
        sim = 1
-    if sp == 0:
-       sp_score = 5
-    else:
-       sp_score = round(5/sp,2)
+    sp_score = 5 - (0.2 * sp)
+    if sp_score < 0:
+       sp_score = 0
     if ex >= 3:
-       ex_score = 3
-    elif ex> 0:
        ex_score = 1
+    elif ex> 0:
+       ex_score = 0.5
     else:
        ex_score = 0
-    result = round(20 - sim*20,2) + sp_score + le + ex_score
+    result = round(22*(1-sim),2) + sp_score + le + ex_score
     return result
 def calculate_score(num, sim, sp, ex):
     if sim > 1:
