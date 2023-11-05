@@ -159,7 +159,10 @@ def countCheck(quest_num, answer):
     if len(answer) > int(max_length):
         #print('글자 수가 초과되었습니다.')
         result = str(len(answer))+ '자. 글자 수가 초과되었습니다.'
-        score = 1
+        if quest_num == 53:
+            score = 1
+        else:
+           score = 2.5
     elif len(answer) < int(min_length):
         #print('글자 수가 부족합니다.')
         result =  str(len(answer))+ '자. 글자 수가 부족합니다.'
@@ -167,7 +170,10 @@ def countCheck(quest_num, answer):
     else:
         #print('글자 수가 적당합니다')
         result = str(len(answer))+ '자. 글자 수가 적당합니다'
-        score = 2
+        if quest_num == 53:
+            score = 2
+        else:
+           score = 5
     response = {'글자 수 검사' : result, '점수' : score}
     return response
 
