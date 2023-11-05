@@ -6,6 +6,7 @@ import requests
 import json
 import re
 from gpt_response import gpt_response
+from lsa_Similar import lsa_Similar
 from flask_cors import CORS
 app = Flask(__name__) #상태 알아보기2
 cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
@@ -284,19 +285,19 @@ def get_score():
        response = {'result_score': 0, 's_message': '빈 문자열이라 유사도 검사가 되지 않았습니다.', 'sp_message': '빈 문자열이라 맞춤법 검사가 되지 않았습니다.', 'len_message': '빈 문자열이라 글자 수 검사가 되지 않았습니다.', 'ex_message': '빈 문자열이라 표현 검사가 되지 않았습니다.'}
        return jsonify(response)
     else:
-      #사용자 답안과 , 실제 답안 content, answer
-      similar = similarity(contents, answer)
       #사용자 답안 content
       spell = pusan_univ_spell(contents)
 
       if quest_num == 53:
         #문제와 사용자 답안 question
+        similar = lsa_Similar(contents, answer)
         length = countCheck(quest_num, contents)
         #사용자 답안 content
         expressto = Express(contents)
         len_score = length['점수']#글자수
         len_message = length['글자 수 검사']
       elif quest_num <= 52:
+        similar = similarity(contents, answer)
         expressto = ExpressShort(contents, answer)
       #similar_data = similar.json()
       if '에러' in similar:
