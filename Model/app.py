@@ -176,6 +176,7 @@ def countCheck(quest_num, answer):
         else:
            score = 5
     response = {'글자 수 검사' : result, '점수' : score}
+    print('확인', score)
     return response
 
 #53번 표현 가점, 감점
@@ -344,6 +345,7 @@ def get_score():
         #print(question, quest_con, contents)
         length = countCheck(quest_num, contents)
         gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0], length['글자 수 검사'])
+        gpt_result['score'] += length['점수']
         response = gpt_result
   return jsonify(response)
 
