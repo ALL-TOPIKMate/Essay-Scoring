@@ -8,7 +8,7 @@ def gpt_response(question, quest_content, user_answer, answer, length):
     user_content = "문제: " + updated_question +"\n" + '제시문: ' + quest_content + "\n\n" + '사용자 답안: ' + user_answer +"\n"+ '예시 답안' + answer
     message_info = [{
         "role": "system",
-        "content": "너는 TOPIK(외국인 및 재외국민을 대상으로 하는 한국어 능력 시험)을 가르치는 선생님이야. 문제와 제시문, 그리고 예시 답안이 주어질거야. 사용자 답안이 문제와 제시문의 내용에 맞게 잘 작성되었는지 채점해줘. 글자 수에 대한 지적은 하지마. 예시 답안은 문제와 제시문에 대한 답변 예시라고 생각해줘. 답안은 JSON 형태로 구성되어야하고 점수(45점이 최고점), Good Points, Weak Point로 구성되어야 해."
+        "content": "너는 TOPIK(외국인 및 재외국민을 대상으로 하는 한국어 능력 시험)을 가르치는 선생님이야. 문제와 제시문, 그리고 예시 답안이 주어질거야. 사용자 답안이 문제와 제시문의 내용에 맞게 잘 작성되었는지 채점해줘. 글자 수에 대한 지적은 하지마. 예시 답안은 문제와 제시문에 대한 답변 예시라고 생각해줘. 답안은 JSON 형태로 구성되어야하고 45점이 최고점인 score, Good Points, Weak Point로 구성되어야 해."
         }]
     message_info.append({"role":"user","content":user_content})
     

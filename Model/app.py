@@ -6,6 +6,7 @@ import requests
 import json
 import re
 from gpt_response import gpt_response
+from lsa_Similar import lsa_Similar
 from flask_cors import CORS
 app = Flask(__name__) #상태 알아보기2
 cors = CORS(app, resources={r"*": {"origins": "https://port-0-docker-essay-score-jvvy2blm7ipnj3.sel5.cloudtype.app"}})
@@ -76,9 +77,9 @@ def check_distance(X, new_post_vec, contents):
         if d < best_dist:
             best_dist = d
             best_i = i
-            result = [contents[i]] 
+            result = [contents[0]] 
         elif d == best_dist:
-            result.append(contents[i])
+            result.append(contents[0])
 
     return best_i, best_dist, result
 
@@ -159,7 +160,10 @@ def countCheck(quest_num, answer):
     if len(answer) > int(max_length):
         #print('글자 수가 초과되었습니다.')
         result = str(len(answer))+ '자. 글자 수가 초과되었습니다.'
-        score = 1
+        if quest_num == 53:
+            score = 1
+        else:
+           score = 2.5
     elif len(answer) < int(min_length):
         #print('글자 수가 부족합니다.')
         result =  str(len(answer))+ '자. 글자 수가 부족합니다.'
@@ -167,8 +171,12 @@ def countCheck(quest_num, answer):
     else:
         #print('글자 수가 적당합니다')
         result = str(len(answer))+ '자. 글자 수가 적당합니다'
-        score = 2
+        if quest_num == 53:
+            score = 2
+        else:
+           score = 5
     response = {'글자 수 검사' : result, '점수' : score}
+    print('확인', score)
     return response
 
 #53번 표현 가점, 감점
@@ -187,7 +195,9 @@ def Express(sentence):
   pattern = re.compile(r'지만|는데 반해|와 달리|과 달리')
   matches = re.findall(pattern, sentence[0])
   result = '문장 끝 표현 ' + str(cnt) + '회, 대조표현 사용 ' + str(len(matches)) + '회 사용함.'
-  result_cnt = cnt*0.5 + len(matches)
+  result_cnt = -1 * cnt + len(matches)
+  if result_cnt < 0:
+     result_cnt = 0
   response = {"표현 검사" : result , "점수" : result_cnt}
   return response
 
@@ -225,20 +235,19 @@ def ExpressShort(sentence, answer):
 #점수 계산 함수
 def calculate_score53(sim, sp, le, ex):
     #53번 기준 30점
-    #유사도 20점, 맞춤법 5점, 글자 수 2점, 표현 점수 3점
+    #유사도 22점, 맞춤법 5점, 글자 수 2점, 표현 점수 1점
     if sim > 1:
        sim = 1
-    if sp == 0:
-       sp_score = 5
-    else:
-       sp_score = round(5/sp,2)
+    sp_score = 5 - (0.2 * sp)
+    if sp_score < 0:
+       sp_score = 0
     if ex >= 3:
-       ex_score = 3
-    elif ex> 0:
        ex_score = 1
+    elif ex> 0:
+       ex_score = 0.5
     else:
        ex_score = 0
-    result = round(20 - sim*20,2) + sp_score + le + ex_score
+    result = round(22*(1-sim),2) + sp_score + le + ex_score
     return result
 def calculate_score(num, sim, sp, ex):
     if sim > 1:
@@ -277,19 +286,19 @@ def get_score():
        response = {'result_score': 0, 's_message': '빈 문자열이라 유사도 검사가 되지 않았습니다.', 'sp_message': '빈 문자열이라 맞춤법 검사가 되지 않았습니다.', 'len_message': '빈 문자열이라 글자 수 검사가 되지 않았습니다.', 'ex_message': '빈 문자열이라 표현 검사가 되지 않았습니다.'}
        return jsonify(response)
     else:
-      #사용자 답안과 , 실제 답안 content, answer
-      similar = similarity(contents, answer)
       #사용자 답안 content
       spell = pusan_univ_spell(contents)
 
       if quest_num == 53:
         #문제와 사용자 답안 question
+        similar = lsa_Similar(contents, answer)
         length = countCheck(quest_num, contents)
         #사용자 답안 content
         expressto = Express(contents)
         len_score = length['점수']#글자수
         len_message = length['글자 수 검사']
       elif quest_num <= 52:
+        similar = similarity(contents, answer)
         expressto = ExpressShort(contents, answer)
       #similar_data = similar.json()
       if '에러' in similar:
@@ -336,6 +345,7 @@ def get_score():
         #print(question, quest_con, contents)
         length = countCheck(quest_num, contents)
         gpt_result = gpt_response(question[0], quest_con[0], contents[0], answer[0], length['글자 수 검사'])
+        gpt_result['score'] += length['점수']
         response = gpt_result
   return jsonify(response)
 
